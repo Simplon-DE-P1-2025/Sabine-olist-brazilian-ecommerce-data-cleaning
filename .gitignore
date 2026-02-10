@@ -8,7 +8,7 @@ env/
 
 # Data
 data/raw/*.csv
-data/processed/
+data/processed/*.csv
 
 # OS
 .DS_Store
