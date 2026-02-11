@@ -62,6 +62,29 @@ Trois blocs simples, pensés pour une première itération reproductible :
 
 La base `olist_final.sqlite` est structurée pour les requêtes analytiques rapides.
 
+**Schéma visuel clair du pipeline (BSG)**
+- Diagramme du pipeline Bronze → Silver → Gold (+ SQLite) 
+
+flowchart LR
+    subgraph Bronze
+      A[data/bronze<br/>Raw CSVs] --> B["src/extract.py<br/>load_all()"]
+    end
+
+    subgraph Silver
+      C["src/transform.py<br/>cast_basic_types()<br/>add_quality_flags()<br/>reviews_canonical()<br/>geolocation_dedup()"] --> D[data/silver<br/>Clean CSVs]
+    end
+
+    subgraph Gold
+      E[src/model.py<br/>Dims + Fact] --> F["src/load.py<br/>apply_schema()<br/>load_tables()"]
+      F --> G["data/db/olist.db<br/>SQLite (star schema)"]
+    end
+
+    B --> C
+    D --> E
+
+    H["[notebooks<br/>01_exploration<br/>02_etl<br/>03_analytics]"]
+
+
 ### Table de faits
 
 **fact_order_items** — grain : 1 ligne = 1 produit vendu dans une commande.  
