@@ -1,30 +1,80 @@
+# ============================================
 # LOAD (Gold -> SQLite)
-from pathlib import Path
+# ============================================
+#
+# -- Applique le DDL, charge les tables Gold, 
+#   et effectue des sanity checks.
+# 
+# ============================================
+
+
 import sqlite3
+from pathlib import Path
+from typing import Dict
 import pandas as pd
-from src.config import DB_PATH, DDL_PATH
+import pandera.pandas as pa
 
-def apply_schema(ddl_path: Path = DDL_PATH, db_path: Path = DB_PATH) -> None:
-    sql = Path(ddl_path).read_text(encoding="utf-8")
-    with sqlite3.connect(db_path) as conn:
-        conn.execute("PRAGMA foreign_keys = ON;")
-        conn.executescript(sql)
+from src.config import DB_PATH
 
-def load_tables(gold: dict, if_exists: str = "replace", db_path: Path = DB_PATH) -> None:
-    with sqlite3.connect(db_path) as conn:
-        conn.execute("PRAGMA foreign_keys = ON;")
-        for t, df in gold.items():
-            if isinstance(df, pd.DataFrame):
-                df.to_sql(t, conn, if_exists=if_exists, index=False)
+def apply_schema(schema_path: Path = Path("sql/ddl/schema_etoile.sql")) -> None:
+    """
+    Applique le schéma SQL (DDL) pour recréer les tables Gold dans SQLite.
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        with open(schema_path, "r", encoding="utf-8") as f:
+            ddl = f.read()
+        conn.executescript(ddl)
 
-def sanity_checks(db_path: Path = DB_PATH) -> dict:
-    report = {}
-    with sqlite3.connect(db_path) as conn:
+def load_tables(dfs: Dict[str, pd.DataFrame], if_exists: str = "replace") -> None:
+    """
+    Charge les DataFrames Gold dans la base SQLite selon l'ordre :
+      1. Dims
+      2. Fact
+      3. Tables auxiliaires
+    """
+    order = [
+    "dim_customers",
+    "dim_products",
+    "dim_sellers",
+    "dim_date",
+    "fact_orders",        
+    "fact_order_items",
+    "aux_order_payments",
+    "aux_order_reviews",
+]
+
+    with sqlite3.connect(DB_PATH) as conn:
+        for name in order:
+            if name in dfs and isinstance(dfs[name], pd.DataFrame):
+                dfs[name].to_sql(name, conn, if_exists=if_exists, index=False)
+
+def sanity_checks() -> dict:
+    """
+    Contrôles simples :
+      - existence des tables
+      - nombre de lignes
+    """
+    checks = {}
+    tables = [
+    "dim_customers",
+    "dim_products",
+    "dim_sellers",
+    "dim_date",
+    "fact_orders",        
+    "fact_order_items",
+    "aux_order_payments",
+    "aux_order_reviews",
+]
+    with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
-        for t in ["dim_customers","dim_products","dim_sellers","dim_date","fact_order_items"]:
-            try:
-                cur.execute(f"SELECT COUNT(*) FROM {t};")
-                report[f"count_{t}"] = cur.fetchone()[0]
-            except sqlite3.Error:
-                report[f"count_{t}"] = None
-    return report
+        for t in tables:
+            cur.execute(
+                "SELECT COUNT(*) FROM sqlite_master WHERE name=? AND type='table'",
+                (t,)
+            )
+            exists = cur.fetchone()[0] == 1
+            checks[f"{t}_exists"] = exists
+            if exists:
+                cur.execute(f"SELECT COUNT(*) FROM {t}")
+                checks[f"{t}_rowcount"] = cur.fetchone()[0]
+    return checks

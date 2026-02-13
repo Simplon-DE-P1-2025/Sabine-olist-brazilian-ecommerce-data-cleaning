@@ -9,7 +9,7 @@ SILVER_DIR = DATA_DIR / "silver"
 GOLD_DIR   = DATA_DIR / "gold"
 DB_DIR     = DATA_DIR / "db"
 
-DB_PATH  = DB_DIR / "olist.db"
+DB_PATH = BASE_DIR / "data" / "db" / "olist.db"
 DDL_PATH = BASE_DIR / "sql" / "ddl" / "schema_etoile.sql"
 
 for d in (BRONZE_DIR, SILVER_DIR, GOLD_DIR, DB_DIR):

@@ -1,28 +1,34 @@
-# Python
+
+# Python cache
 __pycache__/
 *.pyc
+*.pyo
 
-# Environments
+
+# Local environnement
+.env
 .venv/
-env/
 
-# Data
-data/raw/*.csv
-data/processed/*.csv
-
-# Data layers & SQLite database
-data/bronze/
-data/silver/
-data/gold/
-data/db/*.
+# Data & SQLite database
+/data/bronze/
+/data/silver/
+/data/gold/
+/data/processed/
+/data/db/*.db
+data/**/*.db
+/data/**/*.csv
 *.sqlite
 db/*.sqlite
 
 
-# Notebooks checkpoints
+# Notebooks 
 **/.ipynb_checkpoints/
+notebook/test.ipynb
 
 # OS
 .DS_Store
+
+# Archive
+archive/
 
 
